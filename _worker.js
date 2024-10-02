@@ -92,14 +92,6 @@ font-family: Tahoma, Verdana, Arial, sans-serif; }
 </head>
 <body>
 <h1>Welcome to nginx!</h1>
-<p>If you see this page, the nginx web server is successfully installed and
-working. Further configuration is required.</p>
-
-<p>For online documentation and support please refer to
-<a href="http://nginx.org/">nginx.org</a>.<br/>
-Commercial support is available at
-<a href="http://nginx.com/">nginx.com</a>.</p>
-
 <p><em>Thank you for using nginx.</em></p>
 </body>
 </html>`;
@@ -109,6 +101,8 @@ export default {
   async fetch(request, env, ctx) {
     try {
       const {
+        PWDCookieName,   //cookie密码key
+        PASSWORD,      //cookie密码value
         PROXY_HOSTNAME,
         PROXY_PROTOCOL = "https",
         PATHNAME_REGEX,
@@ -123,6 +117,47 @@ export default {
       } = env;
       const url = new URL(request.url);
       const originHostname = url.hostname;
+      
+      
+
+  
+///////////////////////////////////////////////////////////////////////////////////////
+    //获取所有cookie
+     var siteCookie = request.headers.get('Cookie');
+      if (PASSWORD != "") {
+        if(siteCookie != null && siteCookie != ""){
+          var pwd = getCook(PWDCookieName, siteCookie);
+      console.log(pwd);
+      if (pwd != null && pwd != "") {
+            if(pwd != PASSWORD){
+            //  logError(request, "Invalid");
+              return new Response(await refuse_by_pwd(), {
+              headers: {
+                "Content-Type": "text/html; charset=utf-8",
+              },
+            });
+            }
+      }else{
+         // logError(request, "Invalid");
+          return new Response(await refuse_by_pwd(), {
+              headers: {
+                "Content-Type": "text/html; charset=utf-8",
+              },
+            });
+        }
+    }else{
+         // logError(request, "Invalid");
+          return new Response(await refuse_by_pwd(), {
+              headers: {
+                "Content-Type": "text/html; charset=utf-8",
+              },
+            });
+        }
+
+  }
+
+///////////////////////////////////////////////////////////////////////////////////////
+      
       if (
         !PROXY_HOSTNAME ||
         (PATHNAME_REGEX && !new RegExp(PATHNAME_REGEX).test(url.pathname)) ||
@@ -160,6 +195,7 @@ export default {
               },
             });
       }
+      
       url.host = PROXY_HOSTNAME;
       url.protocol = PROXY_PROTOCOL;
       const newRequest = createNewRequest(
@@ -197,3 +233,19 @@ export default {
     }
   },
 };
+
+
+
+///////////////////////////////////////////////////////
+//https://stackoverflow.com/questions/5142337/read-a-javascript-cookie-by-name
+function getCook(cookiename, cookies) {
+  // Get name followed by anything except a semicolon
+  var cookiestring = RegExp(cookiename + "=[^;]+").exec(cookies);
+  // Return everything after the equal sign, or an empty string if the cookie name not found
+  return decodeURIComponent(!!cookiestring ? cookiestring.toString().replace(/^[^=]+./, "") : "");
+}
+
+
+async function refuse_by_pwd() {
+  return '<h3>opps,wrong password</h3><br>You do not have auth to visit.'
+}
